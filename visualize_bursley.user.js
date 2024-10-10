@@ -86,7 +86,7 @@
 
   // Function to fetch 5 images using Google Custom Search API
   function fetchGoogleImages (query, itemElement) {
-    const googleSearchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${CX}&key=${apiKey}&searchType=image&num=5`;
+    const googleSearchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${CX}&key=${apiKey}&searchType=image&num=6`;
 
     // Check if the API request limit has been reached
     if (apiCounter.count >= MAX_API_REQUESTS) {
