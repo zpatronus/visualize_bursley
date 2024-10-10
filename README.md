@@ -17,7 +17,7 @@ After:
 - **Auto Image Search (with API Key, OPTIONAL)**:
   - [Get a Google API key for free](https://developers.google.com/custom-search/v1/introduction), and fill it in the API key input box in the bottom-right corner. The script will magically fetch food images from the sections "Signature Maize", "Signature Blue", "Halal", "Two Oceans" and "Wild Fire Maize" automatically.
   - The magic lasts for 100 requests per day for free!
-  - **Image Caching**: Fetched images are cached locally and cleared every day to help prevent hitting the daily API request limit.
+  - **Image Caching**: Fetched images are cached locally and stored for up to 20 days, reducing the need for API requests.
 
 ## Installation
 
