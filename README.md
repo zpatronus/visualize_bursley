@@ -23,7 +23,8 @@ After:
 
 1. Install a userscript manager (like [Tampermonkey](https://www.tampermonkey.net/)).
 2. Add the script from [visualize_bursley.user.js](https://github.com/zpatronus/visualize_bursley/raw/main/visualize_bursley.user.js).
-3. Try it out at [Bursley's menu page](https://dining.umich.edu/menus-locations/dining-halls/bursley/).
+3. You may need to [enable "developer mode"](https://www.tampermonkey.net/faq.php?locale=en#Q209) to allow user script.
+4. Try it out at [Bursley's menu page](https://dining.umich.edu/menus-locations/dining-halls/bursley/).
 
 ## License
 
