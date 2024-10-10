@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Visualize Bursley
 // @namespace    http://tampermonkey.net/
-// @version      2.4
-// @description  Adds buttons to copy food name to clipboard, search in Google Images, and automatically display images using Google Image Search API for specific sections in UMich Dining's Bursley page. The API key and daily API request count are stored persistently in localStorage.
+// @version      2.5
+// @description  Adds buttons to copy food name to clipboard, search in Google Images, and automatically display images using Google Image Search API for specific sections in UMich Dining's Bursley page. It caches images in localStorage with a daily reset.
 // @author       zPatronus
 // @match        https://dining.umich.edu/menus-locations/dining-halls/bursley/*
 // @grant        GM_xmlhttpRequest
@@ -16,18 +16,36 @@
 
   const CX = '51db3fa032b5d4485';  // Your Custom Search Engine ID
   let apiKey = localStorage.getItem('googleApiKey') || '';  // Get API key from localStorage or set to empty
-  let apiCounter = JSON.parse(localStorage.getItem('apiCounterData')) || { count: 0, date: new Date().toDateString() };  // API request count and date stored in localStorage
-
+  let apiCounter = JSON.parse(localStorage.getItem('apiCounterData')) || { count: 0, date: new Date().toDateString() };
   const MAX_API_REQUESTS = 100;
-  const autoSearchSections = ["Signature Maize", "Halal", "Two Oceans"];
+  const autoSearchSections = ["Signature Maize", "Signature Blue", "Halal", "Two Oceans", "Wild Fire Maize"];
+  const IMAGE_CACHE = JSON.parse(localStorage.getItem('imageCache')) || {}; // Image cache stored in localStorage
 
-  // Check if it's a new day and reset the counter if needed
-  function checkAndResetApiCounter () {
+  // Check if it's a new day and reset the counter and cache if needed
+  function checkAndResetDailyData () {
     const today = new Date().toDateString();
     if (apiCounter.date !== today) {
       apiCounter = { count: 0, date: today };
       localStorage.setItem('apiCounterData', JSON.stringify(apiCounter));
+      // Clear the cache if it's a new day
+      localStorage.setItem('imageCache', JSON.stringify({}));
+      console.log('Cache cleared for the new day.');
     }
+  }
+
+  // Check if image is in cache and still valid (from today)
+  function checkImageCache (query) {
+    const cachedImageData = IMAGE_CACHE[query];
+    if (cachedImageData && cachedImageData.date === new Date().toDateString()) {
+      return cachedImageData.images;
+    }
+    return null;
+  }
+
+  // Cache the fetched images with today's date
+  function updateImageCache (query, images) {
+    IMAGE_CACHE[query] = { images, date: new Date().toDateString() };
+    localStorage.setItem('imageCache', JSON.stringify(IMAGE_CACHE));
   }
 
   // Function to create buttons and handle actions
@@ -71,7 +89,14 @@
           item.querySelector('a').insertAdjacentElement('afterend', buttonContainer);
 
           if (autoSearchSections.includes(sectionName) && apiKey && apiCounter.count < MAX_API_REQUESTS) {
-            fetchGoogleImages(foodName, item);
+            // Check the cache before making an API request
+            const cachedImages = checkImageCache(foodName);
+            if (cachedImages) {
+              console.log(`Using cached images for: ${foodName}`);
+              displayImages(cachedImages, item);
+            } else {
+              fetchGoogleImages(foodName, item);
+            }
           } else if (autoSearchSections.includes(sectionName) && !apiKey) {
             console.log('API key not provided. Auto search is disabled.');
           } else if (apiCounter.count >= MAX_API_REQUESTS) {
@@ -86,7 +111,7 @@
 
   // Function to fetch 5 images using Google Custom Search API
   function fetchGoogleImages (query, itemElement) {
-    const googleSearchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${CX}&key=${apiKey}&searchType=image&num=6`;
+    const googleSearchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${CX}&key=${apiKey}&searchType=image&num=5`;
 
     // Check if the API request limit has been reached
     if (apiCounter.count >= MAX_API_REQUESTS) {
@@ -103,26 +128,10 @@
           console.log('Google Custom Search API response:', data);
 
           if (data.items && data.items.length > 0) {
-            const imageContainer = document.createElement('div');
-            imageContainer.style.marginTop = '10px';
-
-            // Append the first 5 thumbnails and maintain aspect ratio
-            data.items.forEach((imageResult, index) => {
-              if (imageResult.image && imageResult.image.thumbnailLink) {
-                const img = document.createElement('img');
-                img.src = imageResult.image.thumbnailLink;
-                img.alt = `${query} image ${index + 1}`;
-                img.style.maxWidth = '100px';   // Max width set to 100px
-                img.style.maxHeight = '100px';  // Max height set to 100px
-                img.style.marginRight = '5px';
-                img.style.objectFit = 'contain';  // Maintain aspect ratio
-
-                imageContainer.appendChild(img);
-              }
-            });
-
-            console.log(`Appending images for: ${query}`);
-            itemElement.appendChild(imageContainer);
+            const images = data.items.map(item => item.image.thumbnailLink);
+            displayImages(images, itemElement);
+            // Cache the images for future use
+            updateImageCache(query, images);
           } else {
             console.warn(`No images found for: ${query}`);
           }
@@ -137,12 +146,28 @@
       },
       onerror: function (error) {
         console.error('Failed to fetch images for:', query, 'Error:', error);
-        // Increment the API counter even for failed requests
         apiCounter.count++;
         localStorage.setItem('apiCounterData', JSON.stringify(apiCounter));
         console.log(`API Requests Made: ${apiCounter.count}`);
       }
     });
+  }
+
+  // Function to display images on the page
+  function displayImages (images, itemElement) {
+    const imageContainer = document.createElement('div');
+    imageContainer.style.marginTop = '10px';
+    images.forEach((imageLink, index) => {
+      const img = document.createElement('img');
+      img.src = imageLink;
+      img.alt = `Image ${index + 1}`;
+      img.style.width = '110px';   // Fixed width
+      img.style.height = '110px';  // Fixed height
+      img.style.marginRight = '5px';
+      img.style.objectFit = 'cover';  // Ensure image fills the 110x110 box
+      imageContainer.appendChild(img);
+    });
+    itemElement.appendChild(imageContainer);
   }
 
   // Function to create the API key input field
@@ -197,7 +222,7 @@
   }
 
   window.addEventListener('load', () => {
-    checkAndResetApiCounter(); // Reset counter if it's a new day
+    checkAndResetDailyData(); // Reset counter and cache if it's a new day
     addButtonsToFoodItems();
     createApiKeyInput();
   });
