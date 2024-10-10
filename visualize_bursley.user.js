@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Visualize Bursley
 // @namespace    http://tampermonkey.net/
-// @version      2.3
+// @version      2.4
 // @description  Adds buttons to copy food name to clipboard, search in Google Images, and automatically display images using Google Image Search API for specific sections in UMich Dining's Bursley page. The API key and daily API request count are stored persistently in localStorage.
 // @author       zPatronus
 // @match        https://dining.umich.edu/menus-locations/dining-halls/bursley/*
