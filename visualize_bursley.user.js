@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Visualize Bursley
 // @namespace    http://tampermonkey.net/
-// @version      2.7
+// @version      2.8
 // @description  Adds buttons to copy food name to clipboard, search in Google Images, and automatically display images using Google Image Search API for specific sections in UMich Dining's Bursley page. It caches images in localStorage for up to 20 days.
 // @author       zPatronus
 // @match        https://dining.umich.edu/menus-locations/dining-halls/bursley/*
@@ -35,7 +35,9 @@
   // Check if image is in cache and still valid (within 20 days)
   function checkImageCache (query) {
     const cachedImageData = IMAGE_CACHE[query];
-    if (cachedImageData && isCacheValid(cachedImageData.date)) {
+    if (cachedImageData) {
+      IMAGE_CACHE[query].date = new Date().toDateString();
+      localStorage.setItem('imageCache', JSON.stringify(IMAGE_CACHE));
       return cachedImageData.images;
     }
     return null;
